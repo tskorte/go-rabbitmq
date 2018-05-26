@@ -1,16 +1,12 @@
 # go-rabbitmq
 
-Consists of a consumer and a producer.
+### Consists of a consumer and a producer.
 
 
-Start by installing RabbitMQ (https://www.rabbitmq.com/download.html)
+Requires a running RabbitMQ instance (https://www.rabbitmq.com/download.html)
 
-Clone the repo to your `$GOPATH/src`
-
-Run `go install go-rabbitmq/cmd/consumerClient`
-
-Run `go install go-rabbitmq/cmd/producerClient`
-
-Run `$GOPATH/bin/consumerClient` to start the consumer
-
-Run `$GOPATH/bin/producerClient` to produce a message
+1. Clone the repo to your `$GOPATH/src`
+2. Run `go install go-rabbitmq/cmd/consumerClient`
+3. Run `go install go-rabbitmq/cmd/producerClient`
+4. Run `$GOPATH/bin/consumerClient` to start the consumer
+5. Run `$GOPATH/bin/producerClient` to produce a message
