@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"rabbitmqtest/utils"
 	"time"
 
 	"github.com/streadway/amqp"
+	"github.com/tskorte/go-utils"
 )
 
 var (
