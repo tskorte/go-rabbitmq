@@ -12,6 +12,10 @@ import (
 	"github.com/streadway/amqp"
 )
 
+const (
+	jsonconfigfile = ".rabbitMQConfig.json"
+)
+
 var (
 	uri          = flag.String("uri", "amqp://guest:guest@localhost:5672/", "AMQP URI")
 	exchangeName = flag.String("exchange", "test-exchange", "Durable, non-auto-deleted AMQP exchange name")
@@ -35,7 +39,7 @@ var (
 	)
 )
 
-type Config struct {
+type config struct {
 	AmqpURI      string
 	ExchangeName string
 	ExchangeType string
@@ -63,17 +67,17 @@ func main() {
 	log.Printf(" [✅] Published %dB OK", len(*body))
 }
 
-func parseConfigFile() *Config {
+func parseConfigFile() *config {
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatalf("Error reading current user %s", err)
 	}
-	configPath := fmt.Sprintf("%s/.rabbitMQConsumerConfig.json", usr.HomeDir)
+	configPath := fmt.Sprintf("%s/%s", usr.HomeDir, jsonconfigfile)
 	configFileBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalf("Error reading config file %s", err)
 	}
-	var config Config
+	var config config
 	err = json.Unmarshal(configFileBytes, &config)
 	if err != nil {
 		log.Fatalf("Error reading config file %s", err)

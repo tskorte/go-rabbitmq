@@ -1,12 +1,27 @@
 # go-rabbitmq
 
-### Consists of a consumer and a producer.
+### Requirements
+A running RabbitMQ instance (https://www.rabbitmq.com/download.html)
 
+### Configuration
+The consumerClient and the producerClient reads a json configuration from the users home directory.
+```json
+{
+  "amqpURI": "amqp://guest:guest@localhost:5672/",
+  "exchangeName": "test-exchange",
+  "exchangeType": "direct",
+  "queue": "test-queue",
+  "consumerTag": "simple-consumer",
+  "consumerLifetime": 0,
+  "routingKey": "test-key",
+  "reliable": true
+}
+```
+Name the file `.rabbitMQConfig.json`.
 
-Requires a running RabbitMQ instance (https://www.rabbitmq.com/download.html)
+### Installation
+1. Run `go install go-rabbitmq/cmd/consumerClient`
+2. Run `go install go-rabbitmq/cmd/producerClient`
+3. Run `$GOPATH/bin/consumerClient` to start the consumer
+4. Run `$GOPATH/bin/producerClient` to produce a message
 
-1. Clone the repo to your `$GOPATH/src`
-2. Run `go install go-rabbitmq/cmd/consumerClient`
-3. Run `go install go-rabbitmq/cmd/producerClient`
-4. Run `$GOPATH/bin/consumerClient` to start the consumer
-5. Run `$GOPATH/bin/producerClient` to produce a message
