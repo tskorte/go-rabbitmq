@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/happierall/l"
 	"github.com/streadway/amqp"
@@ -148,7 +147,7 @@ func handle(deliveries <-chan amqp.Delivery, done chan error) {
 }
 
 func LogReceivedMessage(delivery amqp.Delivery) {
-	log.Printf(
+	l.Debugf(
 		" [▶️] %dB - [%v] %q",
 		len(delivery.Body),
 		delivery.DeliveryTag,
