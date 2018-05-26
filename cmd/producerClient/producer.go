@@ -5,27 +5,18 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/happierall/l"
 	"github.com/streadway/amqp"
-	"github.com/tskorte/go-utils"
 )
 
 var (
-	uri = flag.String(
-		"uri",
-		"amqp://guest:guest@localhost:5672/",
-		"AMQP URI",
-	)
-	exchangeName = flag.String(
-		"exchange",
-		"text-exchange",
-		"Durable AMQP exchange name",
-	)
-	exchangeType = flag.String(
-		"exchangeType",
-		"direct",
-		"Exchange type - direct|fanout|topic|x-custom",
-	)
-	routingKey = flag.String(
+	uri          = flag.String("uri", "amqp://guest:guest@localhost:5672/", "AMQP URI")
+	exchangeName = flag.String("exchange", "test-exchange", "Durable, non-auto-deleted AMQP exchange name")
+	exchangeType = flag.String("exchange-type", "direct", "Exchange type - direct|fanout|topic|x-custom")
+	queue        = flag.String("queue", "test-queue", "Ephemeral AMQP queue name")
+	consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
+	lifetime     = flag.Duration("lifetime", 0, "lifetime of process before shutdown (0s=infinite)")
+	routingKey   = flag.String(
 		"key",
 		"test-key",
 		"AMQP routing key",
@@ -114,7 +105,7 @@ func publish(
 		defer confirmOne(confirms)
 	}
 
-	utils.LogSuccess("Declared exchange")
+	l.Debug("Declared exchange")
 	log.Printf(
 		" Publishing %d body (%q)",
 		len(body),
