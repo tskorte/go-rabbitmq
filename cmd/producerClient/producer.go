@@ -44,7 +44,7 @@ type config struct {
 	ExchangeName string
 	ExchangeType string
 	Queue        string
-	RoutingKey   string
+	Key          string
 	Reliable     bool
 }
 
@@ -58,7 +58,7 @@ func main() {
 		config.AmqpURI,
 		config.ExchangeName,
 		config.ExchangeType,
-		config.RoutingKey,
+		config.Key,
 		*body,
 		config.Reliable,
 	); err != nil {

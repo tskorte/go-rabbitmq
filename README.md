@@ -13,7 +13,7 @@ The consumerClient and the producerClient reads a json configuration from the us
   "queue": "test-queue",
   "consumerTag": "simple-consumer",
   "consumerLifetime": 0,
-  "routingKey": "test-key",
+  "key": "test-key",
   "reliable": true
 }
 ```

@@ -1,14 +1,31 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go-rabbitmq/consumer"
+	"io/ioutil"
 	"log"
+	"os/user"
 	"time"
 
 	"github.com/happierall/l"
 )
+
+const (
+	jsonconfigfile = ".rabbitMQConfig.json"
+)
+
+type config struct {
+	AmqpURI      string
+	ExchangeName string
+	ExchangeType string
+	Queue        string
+	Key          string
+	ConsumerTag  string
+	LifeTime     int
+}
 
 var (
 	uri          = flag.String("uri", "amqp://guest:guest@localhost:5672/", "AMQP URI")
@@ -25,19 +42,20 @@ func init() {
 }
 
 func main() {
+	config := parseConfigFile()
 	c, err := consumer.NewConsumer(
-		*uri,
-		*exchange,
-		*exchangeType,
-		*queue,
-		*bindingKey,
-		*consumerTag,
+		config.AmqpURI,
+		config.ExchangeName,
+		config.ExchangeType,
+		config.Queue,
+		config.Key,
+		config.ConsumerTag,
 	)
 	if err != nil {
 		l.Error(err)
 	}
 
-	if *lifetime > 0 {
+	if config.LifeTime > 0 {
 		l.Logf(fmt.Sprintf("Consumer running for %s", *lifetime))
 		time.Sleep(*lifetime)
 	} else {
@@ -48,4 +66,22 @@ func main() {
 	if err := c.Shutdown(); err != nil {
 		log.Fatalf("Error during shutdown: %s", err)
 	}
+}
+
+func parseConfigFile() *config {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatalf("Error reading current user %s", err)
+	}
+	configPath := fmt.Sprintf("%s/%s", usr.HomeDir, jsonconfigfile)
+	configFileBytes, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatalf("Error reading config file %s", err)
+	}
+	var config config
+	err = json.Unmarshal(configFileBytes, &config)
+	if err != nil {
+		log.Fatalf("Error reading config file %s", err)
+	}
+	return &config
 }
