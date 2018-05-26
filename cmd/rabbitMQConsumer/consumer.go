@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/happierall/l"
 	"github.com/streadway/amqp"
-	"github.com/tskorte/go-utils"
 )
 
 var (
@@ -34,18 +34,17 @@ func main() {
 		*consumerTag,
 	)
 	if err != nil {
-		utils.LogError(err.Error())
+		l.Error(err)
 	}
 
 	if *lifetime > 0 {
-		utils.LogWorking(fmt.Sprintf("Consumer running for %s", *lifetime))
+		l.Logf(fmt.Sprintf("Consumer running for %s", *lifetime))
 		time.Sleep(*lifetime)
 	} else {
-		utils.LogWorking("Consumer runnning forever")
+		l.Logf("Consumer running forever")
 		select {}
 	}
 
-	utils.LogWorking("Shutting down")
 	if err := c.Shutdown(); err != nil {
 		log.Fatalf("Error during shutdown: %s", err)
 	}
@@ -74,7 +73,7 @@ func NewConsumer(
 	}
 
 	var err error
-	utils.LogWorking(fmt.Sprintf("Dialling %q", amqpURI))
+	l.Debugf(fmt.Sprintf("Dialling %q", amqpURI))
 	c.conn, err = amqp.Dial(amqpURI)
 	if err != nil {
 		return nil, err
@@ -84,16 +83,16 @@ func NewConsumer(
 		fmt.Printf(" [⬇️] Closing: %s ", <-c.conn.NotifyClose(make(chan *amqp.Error)))
 	}()
 
-	utils.LogSuccess("Got connection")
-	utils.LogWorking("Getting channel")
+	l.Debugf("Got connection")
+	l.Debugf("Getting channel")
 
 	c.channel, err = c.conn.Channel()
 	if err != nil {
-		utils.LogError(fmt.Sprintf("Channel: %s", err))
+		fmt.Printf("Channel: %s", err)
 	}
 
-	utils.LogSuccess("Got channel")
-	utils.LogWorking(fmt.Sprintf("Declaring Exchange (%q)", exchange))
+	l.Debugf("Got channel")
+	l.Debugf(fmt.Sprintf("Declaring Exchange (%q)", exchange))
 
 	if err = c.channel.ExchangeDeclare(
 		exchange,
@@ -107,8 +106,8 @@ func NewConsumer(
 		return nil, fmt.Errorf("Exchange Declare: %s", err)
 	}
 
-	utils.LogSuccess("Declared exchange")
-	utils.LogWorking(fmt.Sprintf("Declaring queue %q", queueName))
+	l.Debugf("Declared exchange")
+	l.Debugf(fmt.Sprintf("Declaring queue %q", queueName))
 	queue, err := c.channel.QueueDeclare(
 		queueName,
 		true,
@@ -122,7 +121,7 @@ func NewConsumer(
 		return nil, fmt.Errorf("Queue declare: %s", err)
 	}
 
-	utils.LogSuccess(
+	l.Debugf(
 		fmt.Sprintf(
 			"Declared queue (%q, %d messages, %d consumers)",
 			queue.Name,
@@ -131,7 +130,7 @@ func NewConsumer(
 		),
 	)
 
-	utils.LogSuccess(
+	l.Debugf(
 		fmt.Sprintf(
 			"Binding to Exchange key %q",
 			key,
@@ -147,8 +146,8 @@ func NewConsumer(
 	); err != nil {
 		return nil, fmt.Errorf("Queue bind: %s", err)
 	}
-	utils.LogSuccess("Queue bound to exchange")
-	utils.LogWorking(
+	l.Debugf("Queue bound to exchange")
+	l.Debugf(
 		fmt.Sprintf("Starting consume (consumer tag %q)", c.tag),
 	)
 	deliveries, err := c.channel.Consume(
@@ -178,7 +177,7 @@ func (c *Consumer) Shutdown() error {
 		return fmt.Errorf("AMQP connection close error: %s", err)
 	}
 
-	defer utils.LogSuccess("AMQP Shutdown OK")
+	defer l.Debugf("AMQP Shutdown OK")
 	return <-c.done
 }
 
