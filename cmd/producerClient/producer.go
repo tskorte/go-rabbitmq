@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os/user"
 
 	"github.com/happierall/l"
 	"github.com/streadway/amqp"
@@ -14,7 +17,6 @@ var (
 	exchangeName = flag.String("exchange", "test-exchange", "Durable, non-auto-deleted AMQP exchange name")
 	exchangeType = flag.String("exchange-type", "direct", "Exchange type - direct|fanout|topic|x-custom")
 	queue        = flag.String("queue", "test-queue", "Ephemeral AMQP queue name")
-	consumerTag  = flag.String("consumer-tag", "simple-consumer", "AMQP consumer tag (should not be blank)")
 	lifetime     = flag.Duration("lifetime", 0, "lifetime of process before shutdown (0s=infinite)")
 	routingKey   = flag.String(
 		"key",
@@ -33,22 +35,50 @@ var (
 	)
 )
 
+type Config struct {
+	AmqpURI      string
+	ExchangeName string
+	ExchangeType string
+	Queue        string
+	RoutingKey   string
+	Reliable     bool
+}
+
 func init() {
 	flag.Parse()
 }
 
 func main() {
+	config := parseConfigFile()
 	if err := publish(
-		*uri,
-		*exchangeName,
-		*exchangeType,
-		*routingKey,
+		config.AmqpURI,
+		config.ExchangeName,
+		config.ExchangeType,
+		config.RoutingKey,
 		*body,
-		*reliable,
+		config.Reliable,
 	); err != nil {
 		log.Fatalf(" [🛑] %s", err)
 	}
 	log.Printf(" [✅] Published %dB OK", len(*body))
+}
+
+func parseConfigFile() *Config {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatalf("Error reading current user %s", err)
+	}
+	configPath := fmt.Sprintf("%s/.rabbitMQConsumerConfig.json", usr.HomeDir)
+	configFileBytes, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatalf("Error reading config file %s", err)
+	}
+	var config Config
+	err = json.Unmarshal(configFileBytes, &config)
+	if err != nil {
+		log.Fatalf("Error reading config file %s", err)
+	}
+	return &config
 }
 
 func publish(
