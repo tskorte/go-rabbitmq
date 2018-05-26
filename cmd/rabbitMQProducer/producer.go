@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"rabbitmqtest/utils"
 
 	"github.com/streadway/amqp"
+	"github.com/tskorte/go-utils"
 )
 
 var (
