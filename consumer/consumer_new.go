@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/happierall/l"
 	"github.com/streadway/amqp"
@@ -12,6 +13,113 @@ type Consumer struct {
 	channel *amqp.Channel
 	tag     string
 	done    chan error
+}
+
+func (c *Consumer) dialAMQP(amqpURI string) {
+	var err error
+	l.Debugf(fmt.Sprintf("Dialling %q", amqpURI))
+	c.conn, err = amqp.Dial(amqpURI)
+	if err != nil {
+		log.Fatalf("Unable to dial AMQP: %s", err)
+	}
+	l.Debugf("Got connection")
+}
+
+func (c *Consumer) setupChannel() {
+	l.Debugf("Getting channel")
+	var err error
+	c.channel, err = c.conn.Channel()
+	if err != nil {
+		fmt.Printf("Channel: %s", err)
+	}
+
+	l.Debug("Got channel")
+}
+
+func (c *Consumer) declareExchange(en string, et string) {
+	l.Debugf(fmt.Sprintf("Declaring Exchange (%q)", en))
+	var err error
+	err = c.channel.ExchangeDeclare(
+		en,
+		et,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	if err != nil {
+		log.Fatalf("Exchange Declare: %s", err)
+	}
+
+	l.Debugf("Declared exchange")
+}
+
+func (c *Consumer) declareQueue(qn string) {
+	l.Debugf(fmt.Sprintf("Declaring queue %q", qn))
+	queue, err := c.channel.QueueDeclare(
+		qn,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	if err != nil {
+		log.Fatalf("Queue declare: %s", err)
+	}
+
+	l.Debugf(
+		fmt.Sprintf(
+			"Declared queue (%q, %d messages, %d consumers)",
+			queue.Name,
+			queue.Messages,
+			queue.Consumers,
+		),
+	)
+}
+
+func (c *Consumer) bindQueue(qn string, key string, en string) {
+	l.Debugf(
+		fmt.Sprintf(
+			"Binding to Exchange key %q",
+			key,
+		),
+	)
+
+	err := c.channel.QueueBind(
+		qn,
+		key,
+		en,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Queue bind: %s", err)
+	}
+	l.Debugf("Queue bound to exchange")
+}
+
+func (c *Consumer) startConsuming(qn string) <-chan amqp.Delivery {
+	l.Debugf(
+		fmt.Sprintf("Starting consume (consumer tag %q)", c.tag),
+	)
+	deliveries, err := c.channel.Consume(
+		qn,
+		c.tag,
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	if err != nil {
+		l.Errorf("Queue consume: %s", err)
+	}
+	return deliveries
 }
 
 func NewConsumer(
@@ -29,98 +137,15 @@ func NewConsumer(
 		done:    make(chan error),
 	}
 
-	var err error
-	l.Debugf(fmt.Sprintf("Dialling %q", amqpURI))
-	c.conn, err = amqp.Dial(amqpURI)
-	if err != nil {
-		return nil, err
-	}
-
+	c.dialAMQP(amqpURI)
 	go func() {
 		fmt.Printf(" [⬇️] Closing: %s ", <-c.conn.NotifyClose(make(chan *amqp.Error)))
 	}()
-
-	l.Debugf("Got connection")
-	l.Debugf("Getting channel")
-
-	c.channel, err = c.conn.Channel()
-	if err != nil {
-		fmt.Printf("Channel: %s", err)
-	}
-
-	l.Debugf("Got channel")
-	l.Debugf(fmt.Sprintf("Declaring Exchange (%q)", exchange))
-
-	if err = c.channel.ExchangeDeclare(
-		exchange,
-		exchangeType,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	); err != nil {
-		return nil, fmt.Errorf("Exchange Declare: %s", err)
-	}
-
-	l.Debugf("Declared exchange")
-	l.Debugf(fmt.Sprintf("Declaring queue %q", queueName))
-	queue, err := c.channel.QueueDeclare(
-		queueName,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("Queue declare: %s", err)
-	}
-
-	l.Debugf(
-		fmt.Sprintf(
-			"Declared queue (%q, %d messages, %d consumers)",
-			queue.Name,
-			queue.Messages,
-			queue.Consumers,
-		),
-	)
-
-	l.Debugf(
-		fmt.Sprintf(
-			"Binding to Exchange key %q",
-			key,
-		),
-	)
-
-	if err = c.channel.QueueBind(
-		queue.Name,
-		key,
-		exchange,
-		false,
-		nil,
-	); err != nil {
-		return nil, fmt.Errorf("Queue bind: %s", err)
-	}
-	l.Debugf("Queue bound to exchange")
-	l.Debugf(
-		fmt.Sprintf("Starting consume (consumer tag %q)", c.tag),
-	)
-	deliveries, err := c.channel.Consume(
-		queue.Name,
-		c.tag,
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("Queue consume: %s", err)
-	}
-
+	c.setupChannel()
+	c.declareExchange(exchange, exchangeType)
+	c.declareQueue(queueName)
+	c.bindQueue(queueName, key, exchange)
+	deliveries := c.startConsuming(queueName)
 	go handle(deliveries, c.done)
 	return c, nil
 }
